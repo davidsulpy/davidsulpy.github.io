@@ -4,7 +4,7 @@
   <title><![CDATA[Category: node.js | Development - Just the Good Bits]]></title>
   <link href="http://davidsulpy.github.io/blog/categories/node-dot-js/atom.xml" rel="self"/>
   <link href="http://davidsulpy.github.io/"/>
-  <updated>2013-07-13T19:05:11-05:00</updated>
+  <updated>2013-07-14T20:56:59-05:00</updated>
   <id>http://davidsulpy.github.io/</id>
   <author>
     <name><![CDATA[David Sulpy]]></name>
@@ -18,11 +18,7 @@
     <link href="http://davidsulpy.github.io/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/"/>
     <updated>2013-07-13T17:59:00-05:00</updated>
     <id>http://davidsulpy.github.io/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js</id>
-    <content type="html"><![CDATA[<h1>How to build a resilient AWS EC2 Linux instance with nginx and node.js</h1>
-
-<hr />
-
-<p>I spent lots of time figuring out the best recipe for building out an Amazon EC2 instance that would support nginx as my http reverse proxy and node.js web app builder. These steps detail what I&rsquo;ve found to be a &ldquo;winning path.&rdquo; I will start with the disclaimer that not only am I not a Linux power user, but I am also new to nginx. Hence the amount of time I spent working on different combinations. Please follow these directions at your own risk, I do not provide them with any warranty, just for the sake of perhaps saving another newbie some time and because all the tutorials of sorts that I followed didn&rsquo;t seem to sync up with my real experiences.</p>
+    <content type="html"><![CDATA[<p>I spent lots of time figuring out the best recipe for building out an Amazon EC2 instance that would support nginx as my http reverse proxy and node.js web app builder. These steps detail what I&rsquo;ve found to be a &ldquo;winning path.&rdquo; I will start with the disclaimer that not only am I not a Linux power user, but I am also new to nginx. Hence the amount of time I spent working on different combinations. Please follow these directions at your own risk, I do not provide them with any warranty, just for the sake of perhaps saving another newbie some time and because all the tutorials of sorts that I followed didn&rsquo;t seem to sync up with my real experiences.</p>
 
 <h2>1. Launching an Instance</h2>
 
