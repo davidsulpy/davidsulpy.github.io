@@ -4,7 +4,7 @@
   <title><![CDATA[Category: AWS | Development - Just the Good Bits]]></title>
   <link href="http://davidsulpy.github.io/blog/categories/aws/atom.xml" rel="self"/>
   <link href="http://davidsulpy.github.io/"/>
-  <updated>2013-07-14T20:56:59-05:00</updated>
+  <updated>2013-07-16T11:35:56-05:00</updated>
   <id>http://davidsulpy.github.io/</id>
   <author>
     <name><![CDATA[David Sulpy]]></name>
@@ -232,7 +232,7 @@ console.log(&lsquo;Server running at <a href="http://127.0.0.1:8080/">http://127
 
 <p>Now we can test out the whole experience. First, make sure nginx is running and listening to port 80 (you can do something like this <code>$ sudo lsof -i :80</code>). Then start node like so:</p>
 
-<p>```</p>
+<p>```bash</p>
 
 <h1>cd /var/www/node-myapp</h1>
 
@@ -251,9 +251,11 @@ console.log(&lsquo;Server running at <a href="http://127.0.0.1:8080/">http://127
 <ol>
 <li>Install supervisord: <code># easy_install supervisor</code></li>
 <li>Setup default supervisor.conf file <code># echo_supervisord_conf &gt; /etc/supervisord.conf</code></li>
-<li><p>Add node as program to supervisord.conf for the sake of the tutorial I&rsquo;ll paste what I put, but the echo_supervisord_conf is pretty extensive and just about as good as supervisord&rsquo;s documentation</p>
+<li>Add node as program to supervisord.conf for the sake of the tutorial I&rsquo;ll paste what I put, but the echo_supervisord_conf is pretty extensive and just about as good as supervisord&rsquo;s documentation</li>
+</ol>
 
-<p> <code>
+
+<p><code>
 [program:node-myapp]
 command=/var/www/node-myapp/node_modules/coffee-script/bin/coffee app.coffee ;this is because my node app is in coffeescript
 directory=/var/www/node-myapp
@@ -263,10 +265,8 @@ startsecs=2
 startretries=3
 exitcodes=0,2
 stdout_logfile=/var/www/logs/node-myapp.log
-</code></p></li>
-<li>start supervisord: <code># supervisord -c /etc/supervisord.conf</code></li>
-</ol>
-
+</code>
+4. start supervisord: <code># supervisord -c /etc/supervisord.conf</code></p>
 
 <h3><strong>SUCCESS!</strong></h3>
 

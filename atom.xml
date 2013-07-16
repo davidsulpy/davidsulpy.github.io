@@ -4,7 +4,7 @@
   <title><![CDATA[Development - Just the Good Bits]]></title>
   <link href="http://davidsulpy.github.io/atom.xml" rel="self"/>
   <link href="http://davidsulpy.github.io/"/>
-  <updated>2013-07-14T20:56:59-05:00</updated>
+  <updated>2013-07-16T11:35:56-05:00</updated>
   <id>http://davidsulpy.github.io/</id>
   <author>
     <name><![CDATA[David Sulpy]]></name>
@@ -255,8 +255,8 @@ Copy everything from ec2 all the way to .com and paste it in a browser, you shou
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="err">#</span> <span class="nx">cd</span> <span class="o">/</span><span class="kd">var</span><span class="err">/www/node-myapp</span>
-</span><span class='line'><span class="err">#</span> <span class="nx">node</span> <span class="nx">app</span><span class="p">.</span><span class="nx">js</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># cd /var/www/node-myapp</span>
+</span><span class='line'><span class="c"># node app.js</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -271,19 +271,32 @@ Copy everything from ec2 all the way to .com and paste it in a browser, you shou
 <ol>
 <li>Install supervisord: <code># easy_install supervisor</code></li>
 <li>Setup default supervisor.conf file <code># echo_supervisord_conf &gt; /etc/supervisord.conf</code></li>
-<li><p>Add node as program to supervisord.conf for the sake of the tutorial I&rsquo;ll paste what I put, but the echo_supervisord_conf is pretty extensive and just about as good as supervisord&rsquo;s documentation</p>
+<li>Add node as program to supervisord.conf for the sake of the tutorial I&rsquo;ll paste what I put, but the echo_supervisord_conf is pretty extensive and just about as good as supervisord&rsquo;s documentation</li>
+</ol>
 
-<p> <code>
-[program:node-myapp]
-command=/var/www/node-myapp/node_modules/coffee-script/bin/coffee app.coffee ;this is because my node app is in coffeescript
-directory=/var/www/node-myapp
-autostart=true
-autorestart=unexpected
-startsecs=2
-startretries=3
-exitcodes=0,2
-stdout_logfile=/var/www/logs/node-myapp.log
-</code></p></li>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="o">[</span>program:node-myapp<span class="o">]</span>
+</span><span class='line'><span class="nb">command</span><span class="o">=</span>/var/www/node-myapp/node_modules/coffee-script/bin/coffee app.coffee ;this is because my node app is in coffeescript
+</span><span class='line'><span class="nv">directory</span><span class="o">=</span>/var/www/node-myapp
+</span><span class='line'><span class="nv">autostart</span><span class="o">=</span><span class="nb">true</span>
+</span><span class='line'><span class="nv">autorestart</span><span class="o">=</span>unexpected
+</span><span class='line'><span class="nv">startsecs</span><span class="o">=</span>2
+</span><span class='line'><span class="nv">startretries</span><span class="o">=</span>3
+</span><span class='line'><span class="nv">exitcodes</span><span class="o">=</span>0,2
+</span><span class='line'><span class="nv">stdout_logfile</span><span class="o">=</span>/var/www/logs/node-myapp.log
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ol>
 <li>start supervisord: <code># supervisord -c /etc/supervisord.conf</code></li>
 </ol>
 
