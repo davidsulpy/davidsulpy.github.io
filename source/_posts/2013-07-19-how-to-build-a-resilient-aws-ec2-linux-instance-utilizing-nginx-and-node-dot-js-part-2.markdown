@@ -3,6 +3,7 @@ layout: post
 title: "How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and Node.js (Part 2)"
 date: 2013-07-19 09:25
 comments: true
+published: false
 categories: [aws, node.js, Amazon Linux, nginx]
 ---
 
