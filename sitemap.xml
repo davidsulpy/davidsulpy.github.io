@@ -7,12 +7,18 @@
         <lastmod>2013-07-14T20:58:53-05:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://davidsulpy.github.io/blog/2013/07/19/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js-part-2/
+        </loc>
+        <lastmod>2013-07-21T14:19:46-05:00</lastmod>
+    </url>
+    <url>
         <loc>http://davidsulpy.github.io/blog/archives/</loc>
-        <lastmod>2013-07-14T20:58:53-05:00</lastmod>
+        <lastmod>2013-07-21T14:19:46-05:00</lastmod>
     </url>
     <url>
         <loc>http://davidsulpy.github.io/</loc>
-        <lastmod>2013-07-14T20:58:53-05:00</lastmod>
+        <lastmod>2013-07-21T14:19:46-05:00</lastmod>
     </url>
     <url>
         <loc>http://davidsulpy.github.io/robots.txt</loc>
