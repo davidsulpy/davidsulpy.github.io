@@ -1,0 +1,661 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Development - Just the Good Bits</title>
+  <meta name="author" content="David Sulpy">
+
+  
+  <meta name="description" content="If you followed read my last post, you were walked through how to build a node-nginx EC2 instance on RHEL 6. I had initially started with Amazon &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davidsulpy.github.io">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Development - Just the Good Bits" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-42577443-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Development - Just the Good Bits</a></h1>
+  
+    <h2>developing, automating, hacking, and securing</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:davidsulpy.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/19/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js-part-2/">How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and Node.js (Part 2)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-19T09:25:00-05:00" pubdate data-updated="true">Jul 19<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>If you followed read my last post, you were walked through how to build a node-nginx EC2 instance on RHEL 6. I had initially started with Amazon Linux before writing that post, and then switch to Ubuntu 12.04 and finally to RHEL6.4 only after not having much, off-the-bat success with the first two. This post, I am going to tackle the same thing, but with Amazon Linux and work out the kinks. Why? Because Amazon Linux is cheaper per hour, optomized for running in Amazon&rsquo;s cloud, has much better Amazon support, AND if you want to do any kind of automated deployments/installations when launching this instance from an AMI, you can use aws-cfn-bootstrap which isn&rsquo;t terribly well supported on RHEL6.4 (for instance, if you install on RHEL6.4 your likely to run into some interesting issues trying to reconnect to your instance on port 22 later&hellip;).</p>
+
+<h2>1. Start an Amazon Linux EC2 Instance</h2>
+
+<p>I won&rsquo;t go into detail about how to do this, as it&rsquo;s very similar (in fact, nearly identical except for choosing Amazon Linux as opposed to RHEL 6.4) to step 1 in <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a>.</p>
+
+<h2>2. Update yum</h2>
+
+<p>When I connected to my instance, I noticed a few updates available so I updated them via yum:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ yum update</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>3. Install nginx 1.4.1</h2>
+
+<p>As I mentioned in my previous post, Amazon Linux only has an older version of nginx available via <code>yum</code> by default. Because of this, we&rsquo;re going to have to get the nginx rpm package and build it ourselves.</p>
+
+<p>First, we&rsquo;ll need <code>rpm-build</code> and <code>rpm-devel</code> as Amazon Linux doesn&rsquo;t ship with these out of the gate.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum -y install rpm-build rpm-devel</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, we&rsquo;re going to get the nginx rpm. I&rsquo;m going to do this in the <code>/usr/local/src/</code> directory. Also, you&rsquo;ll note that the url to the rpm that I&rsquo;m using is specific to nginx 1.4.1. If you want a different version you can see the package list at <a href="http://nginx.org/packages/centos/6/SRPMS/">http://nginx.org/packages/centos/6/SRPMS/</a></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># cd /usr/local/src/
+</span><span class='line'># wget http://nginx.org/packages/centos/6/SRPMS/nginx-1.4.1-1.el6.ngx.src.rpm</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we need to install the dependencies for building nginx</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum install zlib-devel pcre-devel openssl-devel
+</span><span class='line'># yum install gcc</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, we&rsquo;ll actually build the nginx rpm (note: we&rsquo;re still in <code>/usr/local/src/</code>)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># rpmbuild -bb nginx.spec</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, we&rsquo;ll install via yum the locally built package.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum install /usr/src/rpm/RPMS/x86_64/nginx-1.4.1-1.amzn1.ngx.x86_64.rpm</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You should now have an <code>/etc/nginx/</code> directory and you should be able to run <code>$ sudo nginx</code> and see the following page at your instance url (assuming you opened port 80 in your instance&rsquo;s security group)</p>
+
+<p><img src="http://davidsulpy.github.io/images/gtZCABS5Mp6KCBjWIjiA0nZtnyaoOTtDQiYqY7hK9BQ.png" alt="Welcome to nginx" /></p>
+
+<h2>4. Configuring nginx</h2>
+
+<p>See step 5 of <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a>, it&rsquo;s the same here.</p>
+
+<h2>5. Installing node</h2>
+
+<p>We&rsquo;re going to install <code>git</code> and download node source and compile it locally. We&rsquo;re going to checkout the branch for v0.10.13 because at the time of this artical, that&rsquo;s the current version as noted on nodejs.org. We&rsquo;ll also need g++ so we&rsquo;ll install taht as well</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum install gcc-c++
+</span><span class='line'># yum install git
+</span><span class='line'># git clone https://github.com/joyent/node.git
+</span><span class='line'># cd node/
+</span><span class='line'># git checkout v0.10.13
+</span><span class='line'># ./configure --prefix=/opt/node && make && make install</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, grab some coffee because this is going to take a while…</p>
+
+<p>Once it&rsquo;s finished you can add node to your $PATH with the following command</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># export PATH=$PATH:/usr/local/bin</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>6. Getting node up and running with nginx</h2>
+
+<p>See step 7 of <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a> this step is the same.</p>
+
+<h2>7. Setting up supervisord</h2>
+
+<p>This is the same as step 8 in <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a>.</p>
+
+<h2>8. Baking an AMI</h2>
+
+<p>This was something that I meant to cover in my previous post, but didn&rsquo;t so I&rsquo;ll cover it here. Although, this is by far the easiest step. In order to create an AMI (Amazon Machine Instance) on AWS you simply right click the instance that you&rsquo;ve been working on in the EC2 &ndash;> Instances list, then click &lsquo;Create Image (EBS AMI)`</p>
+
+<p><img src="/images/D5QErtoN-G9x9W7RiKVhAxgbUm2aNMgMojiS-hFD81A.png" alt="Create Image" /></p>
+
+<p>Once you&rsquo;ve done this the most important (and required) thing you&rsquo;ll be asked for is a name. After giving a name, click &lsquo;Yes, Create.&rsquo;</p>
+
+<blockquote><p><strong>NOTE:</strong> make sure you name it something rememberable like node-nginx_YYYY.MM.DD. This will help you when you start making multiple images a day.</p></blockquote>
+
+<p>You&rsquo;re AMI will be ready shortly. With an AMI you have the ability to launch exactly where you left off on any different instance size, security group, key-pair, etc you&rsquo;d like.</p>
+
+<p><em>Brilliant.</em></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and node.js</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-13T17:59:00-05:00" pubdate data-updated="true">Jul 13<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I spent lots of time figuring out the best recipe for building out an Amazon EC2 instance that would support nginx as my http reverse proxy and node.js web app builder. These steps detail what I&rsquo;ve found to be a &ldquo;winning path.&rdquo; I will start with the disclaimer that not only am I not a Linux power user, but I am also new to nginx. Hence the amount of time I spent working on different combinations. Please follow these directions at your own risk, I do not provide them with any warranty, just for the sake of perhaps saving another newbie some time and because all the tutorials of sorts that I followed didn&rsquo;t seem to sync up with my real experiences.</p>
+
+<h2>1. Launching an Instance</h2>
+
+<blockquote><p><strong>NOTE</strong>: If you&rsquo;re familiar with launching instances in Amazon&rsquo;s cloud, you can probably just skim through this until you get to the section on installation and configuraiton.</p></blockquote>
+
+<h4>Choosing an AMI</h4>
+
+<p>You&rsquo;ll start by launching the Request Instances Classic Wizard. I&rsquo;ve experimented with Amazon Linux AMI 2013.03.1, Red Hat Enterprise Linux 6.4 and Ubuntu Server 12.04.2 LTS. Of the three, I&rsquo;ve had the best experience with RHEL. Amazon Linux had an outdated nginx in their repo, and I had problems getting Ubuntu configured correctly.
+<img src="http://davidsulpy.github.io/images/VwzUbaIs5GnCTp_cIM5G81wc6ioMsWE_aLVgdnqsIFw.png" alt="Request Instances Classic Wizard" /></p>
+
+<h4>Selecting Instance Details</h4>
+
+<p>Once you&rsquo;ve selected RHEL6 64bit you&rsquo;ll setup the instance details. RHEL6 (at the time of this post) is in the free teir with the micro instance, but for the sake of time, I&rsquo;m going to go with an m1.small. Note: most instance details don&rsquo;t really matter in the setup process as we will ultimately be setting up an AMI (Amazon Machine Instance) and when launching an AMI you get to choose whatever instance details you would like for that specific instance.
+<img src="http://davidsulpy.github.io/images/Z87YkArmk_kPEBNyRwmKg_Z9YwlmPkL--3lJe9A8xHI.png" alt="Requst Instance Wizard:Instance Details" /></p>
+
+<p>Next we can breeze through the next few screens because the default values suit our purposes for now. I tend to add a helpful name of sorts in the &lsquo;Name&rsquo; value (as seen below) since I have quite a few Amazon instances.
+<img src="http://davidsulpy.github.io/images/PwcfrIb9AG12SB2aEz6HwUJtdNdbreVkOM22U8hpYI8.png" alt="Request Instance Wizard:Tags" /></p>
+
+<h4>Selecting Key Pair</h4>
+
+<p>This section may require a little background knowledge on Amazon key pairs. I recommend you google that a bit before continuing if the following doesn&rsquo;t make sense to you:</p>
+
+<blockquote><p>Public/private key pairs allow you to securely connect to your instance after it launches. For Windows Server instances, a Key Pair is required to set and deliver a secure encrypted password. For Linux server instances, a key pair allows you to SSH into your instance.
+To create a key pair, enter a name and click Create &amp; Download Your Key Pair. You will be prompted to save the private key to your computer. Note: You only need to generate a key pair once &ndash; not each time you want to deploy an Amazon EC2 instance.</p></blockquote>
+
+<p>I choose a key that I had previously setup here. If you haven&rsquo;t made one, or only have one that you know you shouldn&rsquo;t use, you should take this moment to create a dev, play, sandbox, or config keypair just to get you through the setup process. Again, this is something that you can change when launching this as an custom AMI later.</p>
+
+<h4>Configuring Firewall</h4>
+
+<p>This is another area that will get you if you don&rsquo;t understand the role of the amazon instance firewalls. Just like any other firewall, they block all ports and originating IPs that are not specified as allowed in the firewall policy. These firewall policies are stored in what Amazon calls <code>Security Groups</code>. Wether you&rsquo;re selecting an already created security group or creating a new one, the key ports that should be open are as follows:
+<img src="http://davidsulpy.github.io/images/ly9LsGsLw9OijfcvhtLzisNWwDzo3xUNKcDvwfl33ow.png" alt="Security Group Rules" /></p>
+
+<h4>Review</h4>
+
+<p>After reviewing your instance creation details you can launch it, wait a small bit, and then move on to the next step!</p>
+
+<h2>2. Connecting to Instance via SSH</h2>
+
+<p>Once the machine is launched and in a ready state, we can SSH into it.</p>
+
+<ol>
+<li>Right click on the running instance</li>
+<li>Click &lsquo;Connect&rsquo;</li>
+<li>Expand the &lsquo;Connect with a standalone SSH Client</li>
+<li>Follow those steps… (they&rsquo;re pretty good steps, Amazon even tells you practically exactly what your SSH statement should be)</li>
+</ol>
+
+
+<p>I&rsquo;m using <a href="http://www.iterm2.com/#/section/home">iTerm</a> on a mac, and if you aren&rsquo;t you should be too, only because it&rsquo;s excellent.</p>
+
+<h2>3. Turning off RHEL firewall</h2>
+
+<p>Ok, so I mentioned earlier that since this is sitting behind an amazon firewall, there really isn&rsquo;t a need for the RHEL firewall. Heck, Amazon Linux and Ubuntu didn&rsquo;t even have one enabled by default! So, for our purposes, we&rsquo;ll disable this. (Note the superuser priveledges, if you&rsquo;re new to linux, <code>sudo su</code> is the command your looking for. You know you&rsquo;re super user by the <code>#</code>)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># service iptables save
+</span><span class='line'># service iptables stop
+</span><span class='line'># chkconfig iptables off</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>4. Installing nginx</h2>
+
+<p>First note, nginx is not in the default package repositories, so we&rsquo;ll have to add it.</p>
+
+<p>Second note, you can download and build nginx yourself if you want the latest features and bugfixes, to do this you can checkout <a href="http://wiki.nginx.org/install">their wiki</a>. However, for our purposes, nginx version 1.4.1 is fine for us (it&rsquo;s got the included support for web sockets wich is important if you wan&rsquo;t to use something like socket.io for node.js)</p>
+
+<h4>Creating the package repository file for yum</h4>
+
+<blockquote><p><strong>NOTE</strong>: I&rsquo;m going to use nano throughout this tutorial for 2 reasons: 1) It&rsquo;s the easiest for someone not use to terminal text editing. 2) I think it&rsquo;s a fine tool for non-complex text editing tasks.</p></blockquote>
+
+<p>Create a file named /etc/yum.repos.d/nginx.repo and use the following configuration
+<code>$ sudo nano /etc/yum.repos.d/nginx.repo</code></p>
+
+<p>Note, this must be <code>sudo</code> because of the permissions required on that directory</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[nginx]
+</span><span class='line'>name=nginx repo
+</span><span class='line'>baseurl=http://nginx.org/packages/rhel/6/$basearch/
+</span><span class='line'>gpgcheck=0
+</span><span class='line'>enabled=1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Also, if you&rsquo;re new to nano, after you&rsquo;ve pasted this text into the editor, you&rsquo;ll do <code>ctrl+o</code> to write out to the file, then hit enter (because we already specified the file name when we started nano), and then <code>ctrl+x</code> to exit nano. Remember this, you&rsquo;ll do it again.</p>
+
+<p>To verify that the repo file is correct, you can search for the package <code>yum search nginx</code> and you should get some results</p>
+
+<h4>Installing nginx via yum</h4>
+
+<p><code>sudo yum install nginx</code>
+After executing that command, yum will figure out everything that needs to happen, and prompt you with &lsquo;Is this ok [y/N]:&rsquo;. Type &lsquo;y&rsquo; and hit enter and off you go.</p>
+
+<p>You should see something like this, verifying nginx version 1.4.1 was installed:
+<img src="http://davidsulpy.github.io/images/ZhamGKYx9fMt2MD_PBBW7NQy0wId_aeUWi4fnUfDFjA.png" alt="nginx package download and installation" /></p>
+
+<h4>Verify nginx is working</h4>
+
+<p>With the rhel firewall turned off, and the security group firewall configured as mentioned earlier. You should be able to run nginx and see that it works!</p>
+
+<p>First, start nginx: <code>$ sudo nginx</code> you shouldn&rsquo;t see anything if everything was successful.</p>
+
+<p>If you&rsquo;ve stuck with me this far, you should be able to navigate to your instance using the public domain name found in the EC2 Instance details on the EC2 area of the AWS Console. You&rsquo;ll see something like this:
+<img src="http://davidsulpy.github.io/images/6zAalYbu-r5d98B5pdHChKVy_8oLARXh4JHPOdnS5qM.png" alt="public domain name" />
+Copy everything from ec2 all the way to .com and paste it in a browser, you should see the following page load!
+<img src="http://davidsulpy.github.io/images/gtZCABS5Mp6KCBjWIjiA0nZtnyaoOTtDQiYqY7hK9BQ.png" alt="nginx default landing page" />
+<strong>Success!</strong></p>
+
+<h2>5. Configuring nginx</h2>
+
+<p>Now that we have nginx up and running, we can familiarize ourselves with configuration. Nginx has a concept of server blocks for configuration that represent &lsquo;sites&rsquo; (for the sake of this tutorial). You can have many different server blocks that are nested inside an http block.</p>
+
+<p>Nginx&rsquo;s configuration structure is setup like so (by default):</p>
+
+<ul>
+<li>Master configuration file: <code>/etc/nginx/nginx.conf</code></li>
+<li>Server block configs: <code>/etc/nginx/conf.d/*.conf</code></li>
+</ul>
+
+
+<p>We&rsquo;ll want to create a new server block configuration (and delete the default.conf file since we don&rsquo;t need that anymore). Since I&rsquo;m going to be setting up node, I&rsquo;ll call it <code>/etc/nginx/conf.d/node-myapp.conf</code> with the following contents:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#the IP on which your node server is running, 127.0.0.1 for local of course. I chose port 8080 as the listening port for node
+</span><span class='line'>upstream node-myapp {
+</span><span class='line'>        server 127.0.0.1:8080;
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>#the nginx server instance
+</span><span class='line'>server {
+</span><span class='line'>        listen 80;
+</span><span class='line'>        server_name _;
+</span><span class='line'>        access_log /var/log/nginx/node-myapp.log;
+</span><span class='line'>
+</span><span class='line'>        # pass the request to the node.js server with the correct headers and much more can be added, see nginx config$
+</span><span class='line'>        location / {
+</span><span class='line'>                proxy_set_header X-Real-IP $remote_addr;
+</span><span class='line'>                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+</span><span class='line'>                proxy_set_header Host $http_host;
+</span><span class='line'>                proxy_set_header X-NginX-Proxy true;
+</span><span class='line'>
+</span><span class='line'>                proxy_pass http://node-myapp/;
+</span><span class='line'>                proxy_redirect off;
+</span><span class='line'>                proxy_http_version 1.1;
+</span><span class='line'>                proxy_set_header Upgrade $http_upgrade;
+</span><span class='line'>                proxy_set_header Connection "upgrade";
+</span><span class='line'>        }
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There are a few things to note in the configuration of this server block.</p>
+
+<ol>
+<li>I set the <code>server_name</code> to <code>_</code>. This means that all nginx server traffic will go here as &lsquo;best match&rsquo;.</li>
+<li>The last 3 lines inside the location section are important for websockets. Which I am utilizing and are only supported in later versions of nginx like the one we&rsquo;re using in this tutorial.</li>
+</ol>
+
+
+<p>We can leave the nginx.conf alone for now. To make these</p>
+
+<h2>6. Installing Node</h2>
+
+<p>Some prefer to download node via git others prefer to use the package manager. In this case, we&rsquo;re going to install node from a package manager. This is to avoid issues with compiling (this version of RHEL either doesn&rsquo;t have a C compiler installed or it&rsquo;s not in a standard location). In order to get node from a package manager we have to enable EPEL. To do this, follow these commands:</p>
+
+<p><code>$ su -c 'rpm -ivh http://mirror.pnl.gov/epel/6/i386/epel-release-6-8.noarch.rpm'</code></p>
+
+<p>Then insure it&rsquo;s configured correctly with this:</p>
+
+<p><code>$ yum repolist</code></p>
+
+<p>Now you should see epel in that list.</p>
+
+<p>Finally, we can install nodejs via yum with this command:</p>
+
+<p><code>$ su -c 'yum install nodejs'</code></p>
+
+<h2>7. Getting Node up and running</h2>
+
+<p>You&rsquo;ll need somewhere to put your node assets, and I recommend the following: <code>/var/www/node-myapp</code>.</p>
+
+<p>This will keep a nice consistent experience for your node apps and nginx server blocks.</p>
+
+<p>For the sake of having a node app that does something (if you don&rsquo;t have one to play with). You can use the following &lsquo;hello world&rsquo; code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">res</span><span class="p">.</span><span class="nx">writeHead</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;Content-Type&#39;</span><span class="o">:</span> <span class="s1">&#39;text/plain&#39;</span><span class="p">});</span>
+</span><span class='line'>    <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;Hello World\n&#39;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}).</span><span class="nx">listen</span><span class="p">(</span><span class="mi">8080</span><span class="p">,</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Server running at http://127.0.0.1:8080/&#39;</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Place this in <code>/var/www/node-myapp/app.js</code></p>
+
+<p>Now we can test out the whole experience. First, make sure nginx is running and listening to port 80 (you can do something like this <code>$ sudo lsof -i :80</code>). Then start node like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># cd /var/www/node-myapp</span>
+</span><span class='line'><span class="c"># node app.js</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then when you send requests to the public domain for your instance you should see your hello world message! Vioala!</p>
+
+<h2>8. Supervisord: taking node to the next level</h2>
+
+<p>So now that we know how to setup nginx, and we&rsquo;ve figured out how to get nginx to proxy to our node app, let&rsquo;s think about resilliancy. There might be two things that are going on in your mind through this tutorial: 1) node is not a daemonized process, and that&rsquo;s pretty limitting to me 2) what happens if node crashes??</p>
+
+<p>This is where supervisord comes in handy. It will handle daemonizing your node process as well as reliably monitoring it and restarting it if necessary. Here is how to get supervisord set up in our environment. (for more advanced documentation, checkout <a href="supervisord.org">supervisord</a>)</p>
+
+<ol>
+<li>Install supervisord: <code># easy_install supervisor</code></li>
+<li>Setup default supervisor.conf file <code># echo_supervisord_conf &gt; /etc/supervisord.conf</code></li>
+<li>Add node as program to supervisord.conf for the sake of the tutorial I&rsquo;ll paste what I put, but the echo_supervisord_conf is pretty extensive and just about as good as supervisord&rsquo;s documentation</li>
+</ol>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="o">[</span>program:node-myapp<span class="o">]</span>
+</span><span class='line'><span class="nb">command</span><span class="o">=</span>/var/www/node-myapp/node_modules/coffee-script/bin/coffee app.coffee ;this is because my node app is in coffeescript
+</span><span class='line'><span class="nv">directory</span><span class="o">=</span>/var/www/node-myapp
+</span><span class='line'><span class="nv">autostart</span><span class="o">=</span><span class="nb">true</span>
+</span><span class='line'><span class="nv">autorestart</span><span class="o">=</span>unexpected
+</span><span class='line'><span class="nv">startsecs</span><span class="o">=</span>2
+</span><span class='line'><span class="nv">startretries</span><span class="o">=</span>3
+</span><span class='line'><span class="nv">exitcodes</span><span class="o">=</span>0,2
+</span><span class='line'><span class="nv">stdout_logfile</span><span class="o">=</span>/var/www/logs/node-myapp.log
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ol>
+<li>start supervisord: <code># supervisord -c /etc/supervisord.conf</code></li>
+</ol>
+
+
+<h3><strong>SUCCESS!</strong></h3>
+
+<p>Now, when you reboot your machine, supervisord will <del>be configured to start automatically</del> need to be started, and because we set autostart to true for our node-myapp program, it will also start as a daemon automatically as well. It&rsquo;s also worth noting that nginx will start at reboot also, but you may want to consider adding nginx as a process that&rsquo;s monitored by supervisord as well. There are many more complicated things you can do with supervisord now that you have this foundation.</p>
+
+<p>Good luck!</p>
+
+<h2>Basic Troubleshooting</h2>
+
+<h3>Supervisord</h3>
+
+<blockquote><p>Supervisord is controlled by supervisorctl. You can enter into this control tool by just starting <code># supervisorctl</code>. This will give you a supervisor prompt. Typing <code>help</code> will give you a list of commands to guide you through troubleshooting, and <code>status</code> will give you some insite into wether or not your app is even running correctly (helping identify errors in the supervisord.conf program section).</p></blockquote>
+
+<h3>Nginx</h3>
+
+<blockquote><p>When you make changes changes to the server blocks while nginx is running, you may have to reload it. To do this, use the command <code># nginx -s reload</code>. You can pass other signals after the <code>-s</code> flag as well to aid in troubleshooting.</p></blockquote>
+
+<h3>No 502, no anything…</h3>
+
+<blockquote><p>Check to make sure your security group is set up correctly with the correct ports opened. If not, you may not even see anything when you&rsquo;re attempting to access your ec2 server by public domain via a browser. <strong>NOTE:</strong> rules can be added to a security group that take place nearly instantly while an instance is up and running, but security groups cannot be added or removed after an instance is launched.</p>
+
+<p>Also, check to make sure the RHEL6 iptables are turned off so the local firewall isn&rsquo;t causing you some heartache because you&rsquo;ve assumed it&rsquo;s not on in the first place.</p></blockquote>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/07/19/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js-part-2/">How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and Node.js (Part 2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and node.js</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/davidsulpy">@davidsulpy</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'davidsulpy',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/113065410361553246509?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - David Sulpy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
