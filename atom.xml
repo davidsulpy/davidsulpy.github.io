@@ -4,7 +4,7 @@
   <title><![CDATA[Development - Just the Good Bits]]></title>
   <link href="http://davidsulpy.github.io/atom.xml" rel="self"/>
   <link href="http://davidsulpy.github.io/"/>
-  <updated>2013-07-22T13:48:25-05:00</updated>
+  <updated>2013-08-13T16:36:39-05:00</updated>
   <id>http://davidsulpy.github.io/</id>
   <author>
     <name><![CDATA[David Sulpy]]></name>
@@ -12,6 +12,75 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Output Caching for the Internationally Aware]]></title>
+    <link href="http://davidsulpy.github.io/blog/2013/08/13/output-caching-for-the-internationally-aware/"/>
+    <updated>2013-08-13T10:27:00-05:00</updated>
+    <id>http://davidsulpy.github.io/blog/2013/08/13/output-caching-for-the-internationally-aware</id>
+    <content type="html"><![CDATA[<p>Output caching is highly recommended for high traffic sites. Microsoft offers output caching out of the box for MVC applications through the <code>System.Web.Mvc</code> namespace. With the <code>OutputCache</code> attribute class you can specify certain MVC actions on a controller to return cached outputs. This will greatly reduce server load and improve responstime for large scale applications.</p>
+
+<p>However, whole-section or whole-page output caching for a server-side dynamic site doesn&rsquo;t meet everyone&rsquo;s needs out of the box. What if you have certain areas of your site that are user-specific dynamic and, more importantly, have pii that should at least be prevented by accidental access from another user? Enter, donut hole caching, or donut caching. This allows the caching of just specific areas of a site (donut hole caching) or excluding specific areas from cache (donut caching) so you don&rsquo;t cache areas such as the login information in the top right corner of a page to be viewed by anyone.</p>
+
+<p>DevTrends created a great library for donut caching on MVC. You can access it in NuGet <code>Install-Package MvcDonutCaching</code>. DevTrends also has a much more indepth article on the matter <a href="http://www.devtrends.co.uk/blog/donut-output-caching-in-asp.net-mvc-3">here</a>.</p>
+
+<p>Because there&rsquo;s already a great article on output caching in MVC already. I&rsquo;ll focus on internationalization.</p>
+
+<p>There are a couple unfortunate things about DevTrends MvcDonutCaching library 1) It is currently up for adoption and 2) It doesn&rsquo;t seem to currently have support for the VaryByHeader functionality in Microsoft&rsquo;s MVC OutputCaching.</p>
+
+<h3>OutputCaching: Utilizing VaryByHeader</h3>
+
+<p>The OutputCache class has a <code>VaryByHeader</code> property that you can set to allow output cache keys to vary by headers passed from a browser. This is especially useful when your site is translated based on browser culture. The standard browser will send culture information up on a request in the <code>Accept-Language</code> header key. This header&rsquo;s value is a prioritized list of culture strings. For instance, if my main language is French, but I also understand English, my header might look like this from Firefox:</p>
+
+<p><img src="http://davidsulpy.github.io/images/IRb2U83DK2m73PsgPRx-YuU2rlP2fb2RZokh8LfZ4NY.png" alt="firefox request headers" /></p>
+
+<p>You can specify that cache keys take this into consideration and append the header values to the keys so that visits in China don&rsquo;t influence the output of visitors in France. Below is an example of doing this in the attribute:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="na">[OutputCache(CacheProfile = &quot;Cache1HourInternational&quot;, VaryByHeader = &quot;Accept-Language&quot;)]</span>
+</span><span class='line'><span class="k">public</span> <span class="n">ActionResult</span> <span class="nf">Index</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nf">View</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>By naming the CacheProfile, you also have the benefit of specifying in the config like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;caching&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;outputCache</span> <span class="na">defaultProvider=</span><span class="s">&quot;Memcached&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;providers&gt;</span>
+</span><span class='line'>          <span class="nt">&lt;add</span> <span class="na">name=</span><span class="s">&quot;Memcached&quot;</span> <span class="na">type=</span><span class="s">&quot;MemcachedOutputCacheProviderNamespace&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;/providers&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;/outputCache&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;outputCacheSettings&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;outputCacheProfiles&gt;</span>
+</span><span class='line'>          <span class="nt">&lt;add</span> <span class="na">name=</span><span class="s">&quot;Cache1HourInternational&quot;</span> <span class="na">duration=</span><span class="s">&quot;3600&quot;</span> <span class="na">varyByParam=</span><span class="s">&quot;none&quot;</span> <span class="na">varyByHeader=</span><span class="s">&quot;Accept-Language&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;/outputCacheProfiles&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;/outputCacheSettings&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/caching&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>With this, we can reliably output cache all pages from ActionResults that have the <code>OutputCache</code> attribute and the CacheProfile <code>Cache1HourInternational</code>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and Node.js (Part 2)]]></title>
