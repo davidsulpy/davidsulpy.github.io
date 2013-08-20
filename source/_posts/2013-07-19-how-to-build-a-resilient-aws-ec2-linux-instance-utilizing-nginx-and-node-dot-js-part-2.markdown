@@ -43,9 +43,16 @@ Now, we need to install the dependencies for building nginx
 # yum install gcc
 ```
 
-Then, we'll actually build the nginx rpm (note: we're still in `/usr/local/src/`)
+Use the rpm tool
 
 ```
+# rpm -i nginx-1.4.1-1.el6.ngx.src.rpm
+```
+
+Then, we'll actually build nginx
+
+```
+# cd /usr/src/rpm/SPECS
 # rpmbuild -bb nginx.spec
 ```
 
