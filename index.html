@@ -242,10 +242,18 @@
 </span><span class='line'># yum install gcc</span></code></pre></td></tr></table></div></figure>
 
 
-<p>Then, we&rsquo;ll actually build the nginx rpm (note: we&rsquo;re still in <code>/usr/local/src/</code>)</p>
+<p>Use the rpm tool</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># rpmbuild -bb nginx.spec</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class=''><span class='line'># rpm nginx-1.4.1-1.el6.ngx.src.rpm</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, we&rsquo;ll actually build nginx</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># cd /usr/src/rpm/SPECS
+</span><span class='line'># rpmbuild -bb nginx.spec</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Finally, we&rsquo;ll install via yum the locally built package.</p>
