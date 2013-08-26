@@ -3,7 +3,7 @@
 # ----------------------- #
 
 url: http://davidsulpy.github.io
-title: Development - Just the Good Bits
+title: The Good Bits
 subtitle: "developing, automating, hacking, and securing"
 author: David Sulpy
 simple_search: http://google.com/search
@@ -50,7 +50,7 @@ titlecase: true       # Converts page and post titles to titlecase
 
 # list each of the sidebar modules you want to include, in the order you want them to appear.
 # To add custom asides, create files in /source/_includes/custom/asides/ and add them to the list like 'custom/asides/custom_aside_name.html'
-default_asides: [asides/recent_posts.html, custom/asides/adsense.html, asides/github.html, asides/delicious.html, asides/pinboard.html, asides/googleplus.html]
+default_asides: [custom/asides/adsense_sidebar1.html, asides/recent_posts.html, custom/asides/adsense_sidebar2.html, asides/github.html, asides/delicious.html, asides/pinboard.html, asides/googleplus.html]
 
 # Each layout uses the default asides, but they can have their own asides instead. Simply uncomment the lines below
 # and add an array with the asides you want to use.
@@ -98,3 +98,13 @@ google_analytics_tracking_id: UA-42577443-1
 
 # Facebook Like
 facebook_like: false
+
+social:
+  title: "Find & Follow"
+  adn: davidsulpy
+  facebook: davidsulpy
+  github:	davidsulpy
+  googleplus: 113065410361553246509
+  linkedin: davidsulpy
+  stackoverflow: 766666/david-sulpy
+  twitter: davidsulpy
