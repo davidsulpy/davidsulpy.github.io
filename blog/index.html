@@ -8,14 +8,14 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>How to build a resilient AWS EC2 Linux instance utilizing nginx and node.js - The Good Bits</title>
+    <title>The Good Bits</title>
     <meta name="author" content="David Sulpy">
     
-    <meta name="description" content="How to build a resilient AWS EC2 Linux instance utilizing nginx and node.js Jul 13th, 2013 AWS Linux nginx node.js supervisord I spent lots of time &hellip;">
+    <meta name="description" content="Output Caching for the Internationally Aware Aug 13th, 2013 outputcaching caching asp.net Output caching is highly recommended for high traffic &hellip;">
     
     <meta name="viewport" content="width=device-width">
     
-    <link rel="canonical" href="http://davidsulpy.github.io/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js">
+    <link rel="canonical" href="http://davidsulpy.github.io/blog">
     <link href="/favicon.png" rel="icon">
     <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet">
     <link href="/atom.xml" rel="alternate" title="The Good Bits" type="application/atom+xml">
@@ -56,10 +56,306 @@
         <div class="grid__item two-thirds lap-one-whole palm-one-whole">
         
 
-          <article class="post">
-  <header>
+          
+
+
   
-  <h1 class="title indent">How to build a resilient AWS EC2 Linux instance utilizing nginx and node.js</h1>
+  <article class="listing">
+    <header>
+  
+  <h1 class="beta">
+    <a href="/blog/2013/08/13/output-caching-for-the-internationally-aware/">Output Caching for the Internationally Aware</a>
+  </h1>
+  
+
+  
+  <div class="meta clearfix">
+    
+
+
+
+
+
+
+
+
+  
+
+
+<time class="pull-left" datetime="2013-08-13T10:27:00-05:00" pubdate data-updated="true"><i class="icon-calendar"></i> Aug 13<span>th</span>, 2013</time>
+    
+
+
+
+  
+  <div class="pull-left">
+    <i class="icon-tags"></i>
+    <ul class="tags unstyled">
+    
+      <li><a href="/blog/categories/outputcaching/">outputcaching</a></li>
+    
+      <li><a href="/blog/categories/caching/">caching</a></li>
+    
+      <li><a href="/blog/categories/asp.net/">asp.net</a></li>
+    
+    </ul>
+  </div>
+  
+
+    
+  </div>
+  
+</header>
+
+
+
+
+  <p>Output caching is highly recommended for high traffic sites. Microsoft offers output caching out of the box for MVC applications through the <code>System.Web.Mvc</code> namespace. With the <code>OutputCache</code> attribute class you can specify certain MVC actions on a controller to return cached outputs. This will greatly reduce server load and improve responstime for large scale applications.</p>
+
+<p>However, whole-section or whole-page output caching for a server-side dynamic site doesn&rsquo;t meet everyone&rsquo;s needs out of the box. What if you have certain areas of your site that are user-specific dynamic and, more importantly, have pii that should at least be prevented by accidental access from another user? Enter, donut hole caching, or donut caching. This allows the caching of just specific areas of a site (donut hole caching) or excluding specific areas from cache (donut caching) so you don&rsquo;t cache areas such as the login information in the top right corner of a page to be viewed by anyone.</p>
+
+<p>DevTrends created a great library for donut caching on MVC. You can access it in NuGet <code>Install-Package MvcDonutCaching</code>. DevTrends also has a much more indepth article on the matter <a href="http://www.devtrends.co.uk/blog/donut-output-caching-in-asp.net-mvc-3">here</a>.</p>
+
+<p>Because there&rsquo;s already a great article on output caching in MVC already. I&rsquo;ll focus on internationalization.</p>
+
+<p>There are a couple unfortunate things about DevTrends MvcDonutCaching library 1) It is currently up for adoption and 2) It doesn&rsquo;t seem to currently have support for the VaryByHeader functionality in Microsoft&rsquo;s MVC OutputCaching.</p>
+
+<h3>OutputCaching: Utilizing VaryByHeader</h3>
+
+<p>The OutputCache class has a <code>VaryByHeader</code> property that you can set to allow output cache keys to vary by headers passed from a browser. This is especially useful when your site is translated based on browser culture. The standard browser will send culture information up on a request in the <code>Accept-Language</code> header key. This header&rsquo;s value is a prioritized list of culture strings. For instance, if my main language is French, but I also understand English, my header might look like this from Firefox:</p>
+
+<p><img src="http://davidsulpy.github.io/images/IRb2U83DK2m73PsgPRx-YuU2rlP2fb2RZokh8LfZ4NY.png" alt="firefox request headers" /></p>
+
+<p>You can specify that cache keys take this into consideration and append the header values to the keys so that visits in China don&rsquo;t influence the output of visitors in France. Below is an example of doing this in the attribute:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="na">[OutputCache(CacheProfile = &quot;Cache1HourInternational&quot;, VaryByHeader = &quot;Accept-Language&quot;)]</span>
+</span><span class='line'><span class="k">public</span> <span class="n">ActionResult</span> <span class="nf">Index</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nf">View</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>By naming the CacheProfile, you also have the benefit of specifying in the config like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;caching&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;outputCache</span> <span class="na">defaultProvider=</span><span class="s">&quot;Memcached&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;providers&gt;</span>
+</span><span class='line'>          <span class="nt">&lt;add</span> <span class="na">name=</span><span class="s">&quot;Memcached&quot;</span> <span class="na">type=</span><span class="s">&quot;MemcachedOutputCacheProviderNamespace&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;/providers&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;/outputCache&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;outputCacheSettings&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;outputCacheProfiles&gt;</span>
+</span><span class='line'>          <span class="nt">&lt;add</span> <span class="na">name=</span><span class="s">&quot;Cache1HourInternational&quot;</span> <span class="na">duration=</span><span class="s">&quot;3600&quot;</span> <span class="na">varyByParam=</span><span class="s">&quot;none&quot;</span> <span class="na">varyByHeader=</span><span class="s">&quot;Accept-Language&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>        <span class="nt">&lt;/outputCacheProfiles&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;/outputCacheSettings&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/caching&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>With this, we can reliably output cache all pages from ActionResults that have the <code>OutputCache</code> attribute and the CacheProfile <code>Cache1HourInternational</code>.</p>
+
+
+  </article>
+  <hr>
+
+  
+  <article class="listing">
+    <header>
+  
+  <h1 class="beta">
+    <a href="/blog/2013/07/19/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js-part-2/">How to Build a Resilient AWS EC2 Linux Instance Utilizing Nginx and Node.js (Part 2)</a>
+  </h1>
+  
+
+  
+  <div class="meta clearfix">
+    
+
+
+
+
+
+
+
+
+  
+
+
+<time class="pull-left" datetime="2013-07-19T09:25:00-05:00" pubdate data-updated="true"><i class="icon-calendar"></i> Jul 19<span>th</span>, 2013</time>
+    
+
+
+
+  
+  <div class="pull-left">
+    <i class="icon-tags"></i>
+    <ul class="tags unstyled">
+    
+      <li><a href="/blog/categories/aws/">aws</a></li>
+    
+      <li><a href="/blog/categories/node.js/">node.js</a></li>
+    
+      <li><a href="/blog/categories/Amazon Linux/">Amazon Linux</a></li>
+    
+      <li><a href="/blog/categories/nginx/">nginx</a></li>
+    
+    </ul>
+  </div>
+  
+
+    
+  </div>
+  
+</header>
+
+
+
+
+  <p>If you followed read my last post, you were walked through how to build a node-nginx EC2 instance on RHEL 6. I had initially started with Amazon Linux before writing that post, and then switch to Ubuntu 12.04 and finally to RHEL6.4 only after not having much, off-the-bat success with the first two. This post, I am going to tackle the same thing, but with Amazon Linux and work out the kinks. Why? Because Amazon Linux is cheaper per hour, optomized for running in Amazon&rsquo;s cloud, has much better Amazon support, AND if you want to do any kind of automated deployments/installations when launching this instance from an AMI, you can use aws-cfn-bootstrap which isn&rsquo;t terribly well supported on RHEL6.4 (for instance, if you install on RHEL6.4 your likely to run into some interesting issues trying to reconnect to your instance on port 22 later&hellip;).</p>
+
+<h2>1. Start an Amazon Linux EC2 Instance</h2>
+
+<p>I won&rsquo;t go into detail about how to do this, as it&rsquo;s very similar (in fact, nearly identical except for choosing Amazon Linux as opposed to RHEL 6.4) to step 1 in <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a>.</p>
+
+<h2>2. Update yum</h2>
+
+<p>When I connected to my instance, I noticed a few updates available so I updated them via yum:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ yum update</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>3. Install nginx 1.4.1</h2>
+
+<p>As I mentioned in my previous post, Amazon Linux only has an older version of nginx available via <code>yum</code> by default. Because of this, we&rsquo;re going to have to get the nginx rpm package and build it ourselves.</p>
+
+<p>First, we&rsquo;ll need <code>rpm-build</code> and <code>rpm-devel</code> as Amazon Linux doesn&rsquo;t ship with these out of the gate.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum -y install rpm-build rpm-devel</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, we&rsquo;re going to get the nginx rpm. I&rsquo;m going to do this in the <code>/usr/local/src/</code> directory. Also, you&rsquo;ll note that the url to the rpm that I&rsquo;m using is specific to nginx 1.4.1. If you want a different version you can see the package list at <a href="http://nginx.org/packages/centos/6/SRPMS/">http://nginx.org/packages/centos/6/SRPMS/</a></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># cd /usr/local/src/
+</span><span class='line'># wget http://nginx.org/packages/centos/6/SRPMS/nginx-1.4.1-1.el6.ngx.src.rpm</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we need to install the dependencies for building nginx</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum install zlib-devel pcre-devel openssl-devel
+</span><span class='line'># yum install gcc</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Use the rpm tool</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># rpm -i nginx-1.4.1-1.el6.ngx.src.rpm</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, we&rsquo;ll actually build nginx</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># cd /usr/src/rpm/SPECS
+</span><span class='line'># rpmbuild -bb nginx.spec</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, we&rsquo;ll install via yum the locally built package.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum install /usr/src/rpm/RPMS/x86_64/nginx-1.4.1-1.amzn1.ngx.x86_64.rpm</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You should now have an <code>/etc/nginx/</code> directory and you should be able to run <code>$ sudo nginx</code> and see the following page at your instance url (assuming you opened port 80 in your instance&rsquo;s security group)</p>
+
+<p><img src="http://davidsulpy.github.io/images/gtZCABS5Mp6KCBjWIjiA0nZtnyaoOTtDQiYqY7hK9BQ.png" alt="Welcome to nginx" /></p>
+
+<h2>4. Configuring nginx</h2>
+
+<p>See step 5 of <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a>, it&rsquo;s the same here.</p>
+
+<h2>5. Installing node</h2>
+
+<p>We&rsquo;re going to install <code>git</code> and download node source and compile it locally. We&rsquo;re going to checkout the branch for v0.10.13 because at the time of this artical, that&rsquo;s the current version as noted on nodejs.org. We&rsquo;ll also need g++ so we&rsquo;ll install taht as well</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># yum install gcc-c++
+</span><span class='line'># yum install git
+</span><span class='line'># git clone https://github.com/joyent/node.git
+</span><span class='line'># cd node/
+</span><span class='line'># git checkout v0.10.13
+</span><span class='line'># ./configure --prefix=/opt/node && make && make install</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, grab some coffee because this is going to take a while…</p>
+
+<p>Once it&rsquo;s finished you can add node to your $PATH with the following command</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># export PATH=$PATH:/usr/local/bin</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>6. Getting node up and running with nginx</h2>
+
+<p>See step 7 of <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a> this step is the same.</p>
+
+<h2>7. Setting up supervisord</h2>
+
+<p>This is the same as step 8 in <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">my previous post</a>.</p>
+
+<h2>8. Baking an AMI</h2>
+
+<p>This was something that I meant to cover in my previous post, but didn&rsquo;t so I&rsquo;ll cover it here. Although, this is by far the easiest step. In order to create an AMI (Amazon Machine Instance) on AWS you simply right click the instance that you&rsquo;ve been working on in the EC2 &ndash;> Instances list, then click &lsquo;Create Image (EBS AMI)`</p>
+
+<p><img src="/images/D5QErtoN-G9x9W7RiKVhAxgbUm2aNMgMojiS-hFD81A.png" alt="Create Image" /></p>
+
+<p>Once you&rsquo;ve done this the most important (and required) thing you&rsquo;ll be asked for is a name. After giving a name, click &lsquo;Yes, Create.&rsquo;</p>
+
+<blockquote><p><strong>NOTE:</strong> make sure you name it something rememberable like node-nginx_YYYY.MM.DD. This will help you when you start making multiple images a day.</p></blockquote>
+
+<p>You&rsquo;re AMI will be ready shortly. With an AMI you have the ability to launch exactly where you left off on any different instance size, security group, key-pair, etc you&rsquo;d like.</p>
+
+<p><em>Brilliant.</em></p>
+
+
+  </article>
+  <hr>
+
+  
+  <article class="listing">
+    <header>
+  
+  <h1 class="beta">
+    <a href="/blog/2013/07/13/how-to-build-a-resilient-aws-ec2-linux-instance-utilizing-nginx-and-node-dot-js/">How to build a resilient AWS EC2 Linux instance utilizing nginx and node.js</a>
+  </h1>
   
 
   
@@ -414,8 +710,8 @@ Copy everything from ec2 all the way to .com and paste it in a browser, you shou
 <p>Also, check to make sure the RHEL6 iptables are turned off so the local firewall isn&rsquo;t causing you some heartache because you&rsquo;ve assumed it&rsquo;s not on in the first place.</p></blockquote>
 
 
-</article>
-
+  </article>
+  <hr>
 
         
         </div>
